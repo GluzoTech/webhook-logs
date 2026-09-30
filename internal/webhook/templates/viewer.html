@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Webhook Logs</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --panel: #ffffff;
+    --border: #e2e5ea;
+    --text: #1b1f24;
+    --muted: #6b727e;
+    --accent: #2f6feb;
+    --code-bg: #f3f4f7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c;
+      --panel: #1c2027;
+      --border: #2c323b;
+      --text: #e6e8eb;
+      --muted: #9aa2ae;
+      --accent: #6ea0ff;
+      --code-bg: #12151a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 24px 16px 48px;
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 1000px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 16px; }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+  }
+  form.filters { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  input[type=date], input[type=search] {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 7px 10px;
+    font: inherit;
+  }
+  input[type=search] { min-width: 240px; flex: 1; }
+  button {
+    background: var(--accent);
+    color: #fff;
+    border: 0;
+    border-radius: 7px;
+    padding: 8px 16px;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  a { color: var(--accent); }
+  .dates { margin-top: 10px; font-size: 12px; color: var(--muted); }
+  .dates a { margin-right: 10px; white-space: nowrap; }
+  .dates a.current { font-weight: 700; text-decoration: none; }
+  .summary { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; color: var(--muted); font-size: 13px; margin-bottom: 12px; }
+  .entry { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; }
+  .entry > summary { cursor: pointer; padding: 12px 14px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; list-style: none; }
+  .entry > summary::-webkit-details-marker { display: none; }
+  .method { font-weight: 700; font-size: 11px; letter-spacing: .04em; background: var(--accent); color: #fff; padding: 2px 7px; border-radius: 5px; }
+  .time { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .path { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .meta { color: var(--muted); font-size: 12px; margin-left: auto; }
+  .body { padding: 0 14px 14px; }
+  h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 12px 0 6px; }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 10px 12px;
+    overflow-x: auto;
+    margin: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  td { border-bottom: 1px solid var(--border); padding: 5px 8px; vertical-align: top; }
+  td.k { color: var(--muted); white-space: nowrap; width: 1%; font-family: ui-monospace, Menlo, Consolas, monospace; }
+  td.v { font-family: ui-monospace, Menlo, Consolas, monospace; word-break: break-word; }
+  .pager { display: flex; gap: 10px; align-items: center; justify-content: center; margin-top: 18px; }
+  .pager .disabled { color: var(--muted); pointer-events: none; opacity: .5; }
+  .pager a, .pager span { padding: 7px 14px; border: 1px solid var(--border); border-radius: 7px; background: var(--panel); text-decoration: none; }
+  .empty, .error { text-align: center; color: var(--muted); padding: 32px 16px; }
+  .error { color: #d14343; }
+  .tag { font-size: 11px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Webhook Logs</h1>
+
+  <div class="panel">
+    <form class="filters" method="get" action="/api/v1/webhook/view">
+      <input type="hidden" name="key" value="{{ .Key }}">
+      <div>
+        <label for="date">Date</label>
+        <input type="date" id="date" name="date" value="{{ .Page.Date }}" max="{{ .Today }}">
+      </div>
+      <div style="flex:1; min-width:240px;">
+        <label for="q">Search within this date</label>
+        <input type="search" id="q" name="q" value="{{ .Page.Search }}" placeholder="path, body, header, IP&hellip;">
+      </div>
+      <button type="submit">Apply</button>
+    </form>
+
+    {{ if .Dates }}
+    <div class="dates">
+      Days with logs:
+      {{ range .Dates }}
+        <a class="{{ if eq . $.Page.Date }}current{{ end }}"
+           href="/api/v1/webhook/view?key={{ $.Key }}&amp;date={{ . }}">{{ . }}</a>
+      {{ end }}
+    </div>
+    {{ end }}
+  </div>
+
+  {{ if .Error }}
+    <div class="panel error">{{ .Error }}</div>
+  {{ else }}
+    <div class="summary">
+      <div>
+        <strong>{{ .Page.TotalCount }}</strong> request{{ if ne .Page.TotalCount 1 }}s{{ end }}
+        on {{ .Page.Date }}{{ if .Page.Search }} matching &ldquo;{{ .Page.Search }}&rdquo;{{ end }}
+      </div>
+      <div>Page {{ .Page.Page }} of {{ .Page.TotalPages }} &middot; {{ .Page.PageSize }} per page &middot; newest first</div>
+    </div>
+
+    {{ if .Page.Entries }}
+      {{ range .Page.Entries }}
+      <details class="entry">
+        <summary>
+          <span class="method">{{ .Method }}</span>
+          <span class="time">{{ localTime .Timestamp }}</span>
+          <span class="path">{{ .Path }}{{ if .Query }}?{{ .Query }}{{ end }}</span>
+          <span class="meta">{{ .RemoteIP }} &middot; {{ .BodySize }} B{{ if .Truncated }} &middot; truncated{{ end }}</span>
+        </summary>
+        <div class="body">
+          <h3>Request</h3>
+          <table>
+            <tr><td class="k">id</td><td class="v">{{ .ID }}</td></tr>
+            <tr><td class="k">received</td><td class="v">{{ fullTime .Timestamp }}</td></tr>
+            <tr><td class="k">remote ip</td><td class="v">{{ .RemoteIP }}</td></tr>
+            {{ if .Query }}<tr><td class="k">query</td><td class="v">{{ .Query }}</td></tr>{{ end }}
+          </table>
+
+          <h3>Headers</h3>
+          <table>
+            {{ $h := .Headers }}
+            {{ range sortedHeaders .Headers }}
+            <tr><td class="k">{{ . }}</td><td class="v">{{ joinValues (index $h .) }}</td></tr>
+            {{ end }}
+          </table>
+
+          <h3>Body {{ if .Truncated }}<span class="tag">truncated</span>{{ end }}</h3>
+          {{ if .Body }}
+            <pre>{{ prettyBody .Body }}</pre>
+          {{ else }}
+            <pre>(empty)</pre>
+          {{ end }}
+        </div>
+      </details>
+      {{ end }}
+
+      <div class="pager">
+        {{ if .Page.HasPrev }}<a href="{{ .PrevURL }}">&larr; Newer</a>{{ else }}<span class="disabled">&larr; Newer</span>{{ end }}
+        <span>{{ .Page.Page }} / {{ .Page.TotalPages }}</span>
+        {{ if .Page.HasNext }}<a href="{{ .NextURL }}">Older &rarr;</a>{{ else }}<span class="disabled">Older &rarr;</span>{{ end }}
+      </div>
+    {{ else }}
+      <div class="panel empty">
+        No requests logged on {{ .Page.Date }}{{ if .Page.Search }} matching &ldquo;{{ .Page.Search }}&rdquo;{{ end }}.
+      </div>
+    {{ end }}
+  {{ end }}
+</div>
+</body>
+</html>
