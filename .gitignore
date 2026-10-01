@@ -2,3 +2,4 @@
 tmp/
 build-errors.log
 logs/
+build/

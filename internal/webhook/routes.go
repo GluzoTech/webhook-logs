@@ -11,6 +11,9 @@ func RegisterRoutes(r gin.IRouter, h *Handler, viewKey string) {
 	api := r.Group("/api/v1/webhook")
 	{
 		api.POST("/log", h.Log)
+		// EasyEcom and similar senders probe the URL with a GET before saving
+		// it, so the same handler answers GET and records the probe.
+		api.GET("/log", h.Log)
 		api.GET("/view", middleware.APIKey(viewKey), h.View)
 	}
 }
