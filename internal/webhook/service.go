@@ -27,7 +27,7 @@ func NewService(repo Repository, maxBodyBytes int64, pageSize int) *Service {
 		repo:         repo,
 		maxBodyBytes: maxBodyBytes,
 		pageSize:     pageSize,
-		now:          time.Now,
+		now:          func() time.Time { return time.Now().In(istLocation) },
 	}
 }
 

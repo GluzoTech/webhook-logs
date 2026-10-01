@@ -47,7 +47,7 @@ func (h *Handler) Log(c *gin.Context) {
 		"status":    "logged",
 		"id":        entry.ID,
 		"date":      entry.Date(),
-		"timestamp": entry.Timestamp.Format(time.RFC3339),
+		"timestamp": entry.Timestamp.In(istLocation).Format(time.RFC3339),
 	})
 }
 
@@ -131,10 +131,10 @@ func templateFuncs() template.FuncMap {
 			return buf.String()
 		},
 		"localTime": func(t time.Time) string {
-			return t.Local().Format("15:04:05.000")
+			return t.In(istLocation).Format("15:04:05.000")
 		},
 		"fullTime": func(t time.Time) string {
-			return t.Local().Format("2006-01-02 15:04:05 MST")
+			return t.In(istLocation).Format("2006-01-02 15:04:05 MST")
 		},
 		"sortedHeaders": func(h map[string][]string) []string {
 			keys := make([]string, 0, len(h))

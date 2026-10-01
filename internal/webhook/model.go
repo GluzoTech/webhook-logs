@@ -19,7 +19,7 @@ type LogEntry struct {
 
 // Date returns the log bucket the entry belongs to, as YYYY-MM-DD.
 func (e LogEntry) Date() string {
-	return e.Timestamp.Format(dateLayout)
+	return e.Timestamp.In(istLocation).Format(dateLayout)
 }
 
 // Page is one slice of query results, newest entry first.
